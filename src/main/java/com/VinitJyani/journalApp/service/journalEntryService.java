@@ -46,10 +46,17 @@ public class journalEntryService {
     }
 
     public void deletebyid(ObjectId id, String username){
-        User user = userService.findbyusername(username);
-        user.getJournalEntriesofuser().removeIf(x -> x.getId().equals(id));
-        userService.SaveNewUSer(user);
-        journalEntryRepo.deleteById(id);
+        try {
+            User user = userService.findbyusername(username);
+            boolean remove = user.getJournalEntriesofuser().removeIf(x -> x.getId().equals(id));
+            if (!remove) {
+                throw new RuntimeException("journal entry not found");
+            }
+            userService.saveuser(user);
+            journalEntryRepo.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("An error occured while deleting entry",e);
+        }
     }
 
 
