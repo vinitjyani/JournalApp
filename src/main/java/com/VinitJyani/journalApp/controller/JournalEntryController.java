@@ -74,23 +74,34 @@ public class JournalEntryController {
 //
 //
 //
-    @DeleteMapping("id/{username}/{id}")
-    public boolean deletebyid(@PathVariable ObjectId id, @PathVariable String username){
-         journalEntryService.deletebyid(id,username);
-         return true;
+    @DeleteMapping("id/{id}")
+    public ResponseEntity<?> deletebyid(@PathVariable ObjectId id){
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            journalEntryService.deletebyid(id,username);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception e) {
+            throw new RuntimeException("An error occured while deleting entry",e);
+        }
     }
 //
 //
 //
-    @PutMapping("id/{username}/{id}")
+    @PutMapping("id/{id}")
     public boolean updateentry(@PathVariable ObjectId id ,
-                               @PathVariable String username,
                                @RequestBody JournalEntry newEntry){
-  
-        JournalEntry old = journalEntryService.findbyid(id).orElse(null);
-        if(old!=null){
-             old.setTitle(newEntry.getTitle()!= null && newEntry.getTitle().equals("") ? newEntry.getTitle() : old.getTitle());
-             old.setContent(newEntry.getContent()!=null && newEntry.equals("") ? newEntry.getContent(): old.getContent());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.findbyusername(username);
+        List<JournalEntry> collect =  user.getJournalEntriesofuser().stream().filter(x -> x.getId().equals(id)).collect(Collectors.toList());
+        if(!collect.isEmpty()) {
+            Optional<JournalEntry> jojo = journalEntryService.findbyid(id);
+            if (jojo.isPresent()) {
+                JournalEntry old  = jojo.get();
+                old.setTitle(newEntry.getTitle() != null && newEntry.getTitle().equals("") ? newEntry.getTitle() : old.getTitle());
+                old.setContent(newEntry.getContent() != null && newEntry.equals("") ? newEntry.getContent() : old.getContent());
+            }
         }
         newEntry.setDate(LocalDateTime.now());
         journalEntryService.savaEntry(newEntry);
